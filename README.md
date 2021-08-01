@@ -7,6 +7,9 @@ Welcome! The purpose of this notebook is to outline a very simple process for id
 
 ```python
 # Imports
+import warnings
+warnings.filterwarnings('ignore')
+
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -22,6 +25,33 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression, SGDClassifier
 from sklearn.ensemble import BaggingClassifier, ExtraTreesClassifier, RandomForestClassifier
 ```
+
+    
+    Bad key text.latex.unicode in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 112 ('text.latex.unicode : False # use "ucs" and "inputenc" LaTeX packages for handling')
+    You probably need to get an updated matplotlibrc file from
+    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
+    or from the matplotlib source distribution
+    
+    Bad key savefig.frameon in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 423 ('savefig.frameon : True')
+    You probably need to get an updated matplotlibrc file from
+    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
+    or from the matplotlib source distribution
+    
+    Bad key pgf.debug in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 444 ('pgf.debug           : False')
+    You probably need to get an updated matplotlibrc file from
+    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
+    or from the matplotlib source distribution
+    
+    Bad key verbose.level in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 475 ('verbose.level  : silent      # one of silent, helpful, debug, debug-annoying')
+    You probably need to get an updated matplotlibrc file from
+    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
+    or from the matplotlib source distribution
+    
+    Bad key verbose.fileo in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 476 ('verbose.fileo  : sys.stdout  # a log filename, sys.stdout or sys.stderr')
+    You probably need to get an updated matplotlibrc file from
+    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
+    or from the matplotlib source distribution
+    
 
 
 ```python
@@ -60,7 +90,7 @@ The data include 23 variables:
 
 
 ```python
-df = pd.read_excel("data/default of credit card clients.xls", header = 1)
+df = pd.read_excel("../data/default of credit card clients.xls", header = 1)
 print(f"Number of rows: {df.shape[0]}\nNumber of columns: {df.shape[1]}")
 ```
 
@@ -700,11 +730,7 @@ for estimator in models:
 print(sorted(results, key = lambda s: s[1], reverse= True))
 ```
 
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\svm\_base.py:985: ConvergenceWarning: Liblinear failed to converge, increase the number of iterations.
-      warnings.warn("Liblinear failed to converge, increase "
-    
-
-    [('SVC', 0.8199352576207176), ('LogisticRegression', 0.8156190990018883), ('LogisticRegressionCV', 0.8156190990018883), ('RandomForestClassifier', 0.815214459131373), ('LinearSVC', 0.8148098192608578), ('SGDClassifier', 0.8103587806851902), ('ExtraTreesClassifier', 0.806717021850553), ('BaggingClassifier', 0.7994335041812787), ('KNeighborsClassifier', 0.7874291880226598)]
+    [('SVC', 0.8199352576207176), ('LogisticRegression', 0.8156190990018883), ('LogisticRegressionCV', 0.8156190990018883), ('RandomForestClassifier', 0.8156190990018883), ('LinearSVC', 0.8154842190450499), ('SGDClassifier', 0.8111680604262207), ('ExtraTreesClassifier', 0.8069867817642299), ('BaggingClassifier', 0.8024008632317238), ('KNeighborsClassifier', 0.7874291880226598)]
     
 
 So the best classifier by accuracy is the `SGDClassifier`, which implements a regularized linear model with stochastic gradient descent (SGD) learning. It achieves an accuracy of 82%. That's not great! Let's see how the evaluation metrics break down across the attributes we deemed as sensitive.
@@ -741,13 +767,13 @@ gender_frame.by_group.plot.bar(
 
           accuracy precision    recall false positive rate true positive rate  \
     male                                                                        
-    0      0.82161  0.649378  0.328437             0.04718           0.328437   
-    1     0.804446   0.68272  0.348266            0.051212           0.348266   
+    0     0.818082  0.619403  0.348374            0.056951           0.348374   
+    1     0.810698  0.686076  0.391618            0.056699           0.391618   
     
          selection rate count  
     male                       
-    0          0.106284  4535  
-    1          0.122612  2879  
+    0          0.118192  4535  
+    1            0.1372  2879  
     
 
 
@@ -786,8 +812,8 @@ e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testda
 print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 ```
 
-    Demographic parity ratio: 0.8668355347611121
-    Equalized odds ratio: 0.9212805096913137
+    Demographic parity ratio: 0.8614539516838094
+    Equalized odds ratio: 0.8895738065460402
     
 
 Both ratios are close to 1, which is pretty good but not perfect. How does this analysis change for the *under30* variable?
@@ -813,15 +839,15 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 
              accuracy precision    recall false positive rate true positive rate  \
     under30                                                                        
-    0        0.815283   0.68008  0.307273            0.040916           0.307273   
-    1         0.81425  0.639053   0.39633             0.06479            0.39633   
+    0        0.819093  0.654687  0.380909            0.056871           0.380909   
+    1        0.807249  0.632302  0.337615            0.056824           0.337615   
     
             selection rate count  
     under30                       
-    0             0.099679  4986  
-    1             0.139209  2428  
-    Demographic parity ratio: 0.7160380426139937
-    Equalized odds ratio: 0.6315166676510044
+    0             0.128359  4986  
+    1             0.119852  2428  
+    Demographic parity ratio: 0.9337198826194398
+    Equalized odds ratio: 0.8863392524796917
     
 
 
@@ -881,15 +907,15 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 
              accuracy precision    recall false positive rate true positive rate  \
     under30                                                                        
-    0        0.736262  0.427609  0.577273            0.218734           0.577273   
-    1        0.792834  0.547297  0.445872            0.106745           0.445872   
+    0        0.760931  0.460951  0.493636            0.163407           0.493636   
+    1        0.796129   0.57716  0.343119            0.072756           0.343119   
     
             selection rate count  
     under30                       
-    0             0.297834  4986  
-    1             0.182867  2428  
-    Demographic parity ratio: 0.6139883181069342
-    Equalized odds ratio: 0.48801099622004934
+    0             0.236262  4986  
+    1             0.133443  2428  
+    Demographic parity ratio: 0.5648112149428148
+    Equalized odds ratio: 0.4452452737088161
     
 
 
@@ -921,78 +947,6 @@ e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testda
 print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 ```
 
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\reductions\_moments\utility_parity.py:251: FutureWarning: Using the level keyword in DataFrame and Series aggregations is deprecated and will be removed in a future version. Use groupby instead. df.sum(level=1) should use df.groupby(level=1).sum().
-      lambda_event = (lambda_vec["+"] - self.ratio * lambda_vec["-"]).sum(level=_EVENT) / \
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\linear_model\_stochastic_gradient.py:574: ConvergenceWarning: Maximum number of iteration reached before convergence. Consider increasing max_iter to improve the fit.
-      warnings.warn("Maximum number of iteration reached before "
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\metrics\_classification.py:1248: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 due to no predicted samples. Use `zero_division` parameter to control this behavior.
-      _warn_prf(average, modifier, msg_start, len(result))
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\metrics\_classification.py:1248: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 due to no predicted samples. Use `zero_division` parameter to control this behavior.
-      _warn_prf(average, modifier, msg_start, len(result))
-    C:\Users\allie\Anaconda3\lib\site-packages\sklearn\metrics\_classification.py:1248: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 due to no predicted samples. Use `zero_division` parameter to control this behavior.
-      _warn_prf(average, modifier, msg_start, len(result))
-    
-
              accuracy precision recall false positive rate true positive rate  \
     under30                                                                     
     0        0.779382       0.0    0.0                 0.0                0.0   
@@ -1004,10 +958,6 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
     1                  0.0  2428  
     Demographic parity ratio: nan
     Equalized odds ratio: nan
-    
-
-    C:\Users\allie\Anaconda3\lib\site-packages\fairlearn\metrics\_metric_frame.py:515: RuntimeWarning: invalid value encountered in double_scalars
-      result = self.group_min() / self.group_max()
     
 
 As you can see in the results above, nearly every evaluation metric is zeroed out. Demographic parity and equalized odds are also missing. I'd consider these results to be unstable. If I wanted to improvde precision and recall across both groups, I'd continue to toggle the `DemographicParity()` constraint until I attained satisfactory results. The fairlearn documentation notes that picking the appropriate evaluation metric constraint is crucial, and in a real-world situation, this is something that I or my team would have determined ahead of time in accordance with the machine learning project's goals.
