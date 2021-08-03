@@ -1,8 +1,24 @@
 # An introduction to ML Fairness and Scikit-Learn
 
+## Table of Contents
+
+1. [Summary](#summary)
+2. [Analyssis set-up](#setup)
+3. [The data](#data-overview)
+4. [Data prep](#data-prep)
+5. [Exploration](#exploration)
+6. [Machine learning analysis](#ml-1)
+7. [Bias mitigation via preprocessing](#bias-mitigation-preprocessing)
+8. [Bias mitigation via inprocessing](#bias-mitigation-inprocessing)
+9. [End](#end)
+
+## Summary <a name="summary"></a>
+
 Welcome! The purpose of this notebook is to outline a very simple process for identifying and mitigating machine learning bias using fairlearn and imbalanced-learn. This post will rely on tried-and-true scikit learn best practices, so my hope is that it not only displays ways to handle potential project issues, but also how to properly structure a supervised learning analysis. With that introduction, let's get into the data! 
 
-# Analysis set-up
+:rotating_light: The axis labels on the plots are black, so if you're in GitHub Dark Mode, you will need to switch to Light Mode to view them!
+
+## Analysis set-up <a name="setup"></a>
 
 
 ```python
@@ -53,28 +69,7 @@ from sklearn.ensemble import BaggingClassifier, ExtraTreesClassifier, RandomFore
     or from the matplotlib source distribution
     
 
-
-```python
-# Helper functions
-def fit_predict_score(X, y, estimator):
-    # pipeline
-    pipe = Pipeline([
-        ('scaler', StandardScaler(with_mean=False)),
-        ('estimator', estimator)
-    ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-    
-    # Fit models
-    pipe.fit(X_train, y_train)
-    
-    # Generate predictions
-    expected = y_test
-    predicted = pipe.predict(X_test)
-    return accuracy_score(y_true = expected, y_pred = predicted), expected, predicted, X_test
-```
-
-# The data
+## The data <a name="data-overview"></a>
 
 The data used in this analysis come from the UCI Machine Learning Repository (https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients). It represents Taiwanese credit card clients. Our goal will be to predict who is at risk of defaulting on their credit card payment next month, indicated by the variable *default payment next month*. 
 
@@ -561,7 +556,7 @@ df.dtypes
 
 
 
-# Data prep
+## Data prep <a name="data-prep"></a>
 
 Before we can do any machine learning modelling, we first need to prepare the data for analysis. It's not ready in its current form! In the cells below, I walk through various feature engineering steps, including:
 - Check whether any rows have missing values and mitigate as-needed
@@ -633,7 +628,7 @@ for col in ['LIMIT_BAL', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
 df = pd.get_dummies(df, prefix = "educ_", columns = ["EDUC_LEVEL"], drop_first = True)
 ```
 
-# Exploration
+## Exploration <a name="exploration"></a>
 
 Now that the data is prepped, let's view how the distribution of our target variable changes across classes. Of particular interest to me are the *SEX*, *Under 30*, and *Unmarried* columns, as those could all be potentially encoding historical biases. 
 
@@ -653,7 +648,7 @@ sns.heatmap(corr)
 
 
     
-![png](notebook_files/notebook_18_1.png)
+![png](notebook_files/notebook_20_1.png)
     
 
 
@@ -666,19 +661,19 @@ for col in ["SEX", "under30", "unmarried"]:
 
 
     
-![png](notebook_files/notebook_19_0.png)
+![png](notebook_files/notebook_21_0.png)
     
 
 
 
     
-![png](notebook_files/notebook_19_1.png)
+![png](notebook_files/notebook_21_1.png)
     
 
 
 
     
-![png](notebook_files/notebook_19_2.png)
+![png](notebook_files/notebook_21_2.png)
     
 
 
@@ -689,7 +684,7 @@ The catplots above show the following results:
 
 Our classification model is going to pick up on these trends and use them to predict the likelihood of defaulting on a payment. The only result that looks slightly suspicious to me is that younger credit card holders default on their payments more often. My worry is that the model may reflect this reality by classifying younger folks are more likely to default, even when that isn't the case! Let's move on to the modelling stage to see if that happens.
 
-# Machine learning analysis
+## Machine learning analysis <a name="ml-1"></a>
 
 A priori, I don't know which classification model is going to give me the best fit. So the strategy I am going to take instead of fitting different models one-by-one is running a pipeline fit through a series of popular classifiers in an automated fashion. I'm going to use the `fit_predict_score` function I defined earlier to perform the following steps:
 1. Create a pipeline with the steps Standard Scalar (scale the numerical features to have a standard normal distribution) and fit a classifier
@@ -722,7 +717,21 @@ results = []
 # run models
 for estimator in models:
     
-    score, y_true, y_pred, testdata = fit_predict_score(X, y, estimator)
+    # pipeline
+    pipe = Pipeline([
+        ('scaler', StandardScaler(with_mean=False)),
+        ('estimator', estimator)
+    ])
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    
+    # Fit models
+    pipe.fit(X_train, y_train)
+    
+    # Generate predictions
+    expected = y_test
+    predicted = pipe.predict(X_test)
+    score = accuracy_score(y_true = expected, y_pred = predicted), expected, predicted, X_test
 
     # Compute and return F1 (harmonic mean of precision and recall)
     results.append((estimator.__class__.__name__, score) )
@@ -737,7 +746,17 @@ So the best classifier by accuracy is the `SGDClassifier`, which implements a re
 
 
 ```python
-score, y_true, y_pred, testdata = fit_predict_score(X, y, SGDClassifier(max_iter=100, tol=1e-3))
+pipe = Pipeline([
+        ('scaler', StandardScaler(with_mean=False)),
+        ('estimator', SGDClassifier(max_iter=100, tol=1e-3)))
+    ])
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+
+pipe.fit(X_train, y_train)
+    
+expected = y_test
+predicted = pipe.predict(X_test)
 
 metrics = {
     'accuracy': accuracy_score,
@@ -793,7 +812,7 @@ gender_frame.by_group.plot.bar(
 
 
     
-![png](notebook_files/notebook_28_2.png)
+![png](notebook_files/notebook_30_2.png)
     
 
 
@@ -852,7 +871,7 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 
 
     
-![png](notebook_files/notebook_32_1.png)
+![png](notebook_files/notebook_34_1.png)
     
 
 
@@ -867,7 +886,7 @@ In an ideal world, bias mitigation would begin before machine learning starts. I
 
 In the section below, I attempt to address the disparate outcomes for younger credit card holders using resampling.
 
-# Bias mitigation via preprocessing
+## Bias mitigation via preprocessing <a name="bias-mitigation-preprocessing"></a>
 
 
 ```python
@@ -920,11 +939,13 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 
 
     
-![png](notebook_files/notebook_36_1.png)
+![png](notebook_files/notebook_38_1.png)
     
 
 
 After applying SMOTE resampling, we can see that younger applicants now have a lower false positive and lower selection rate than they did previously. The count reflects the underrepresentation in the original dataset and should be ignored. Because  outcomes for the under-30 group are now better across the board, demographic parity and equalized odds suffer. In a more rigorous analysis, I'd experiment with other sampling and reweighting schemes to get as close to equal outcomes between groups as possible. 
+
+## Bias mitigation via inprocessing <a name="bias-mitigation-inprocessing"></a>
 
 In the cell below, I apply an inprocessing method, a reduction (of the demographic parity flavor) to constrain the SDG classifier along a fairness requirement. 
 
@@ -962,6 +983,8 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 
 As you can see in the results above, nearly every evaluation metric is zeroed out. Demographic parity and equalized odds are also missing. I'd consider these results to be unstable. If I wanted to improvde precision and recall across both groups, I'd continue to toggle the `DemographicParity()` constraint until I attained satisfactory results. The fairlearn documentation notes that picking the appropriate evaluation metric constraint is crucial, and in a real-world situation, this is something that I or my team would have determined ahead of time in accordance with the machine learning project's goals.
 
-In a more rigorous analysis (i.e., not in a notebook), I'd also do a grid search on the hyperparameters of the SDG classifier to ensure I got the best fit. But this is an introductory notebook, and I may expand upon it given more time.
+In a more rigorous analysis, I'd also do a grid search on the hyperparameters of the SDG classifier to ensure I got the best fit.
+
+## End <a name="end"></a>
 
 Thank you for reading :smile:. If you'd like to learn more about ML fairness, check out [my presentation](https://docs.google.com/presentation/d/e/2PACX-1vRv7_luengkBK33VtRxdLIdbYiFb-bOH-FeN2zTsyqHQHFAY7PXnOXARIA-s6lglhT6fVLb8sGDs6a3/pub?start=false&loop=false&delayms=10000) on the topic and the [the fairlearn documentation](https://fairlearn.org/main/user_guide/fairness_in_machine_learning.html#fairness-in-machine-learning)! 
