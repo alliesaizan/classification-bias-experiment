@@ -3,7 +3,7 @@
 ## Table of Contents
 
 1. [Summary](#summary)
-2. [Analyssis set-up](#setup)
+2. [Analysis set-up](#setup)
 3. [The data](#data-overview)
 4. [Data prep](#data-prep)
 5. [Exploration](#exploration)
