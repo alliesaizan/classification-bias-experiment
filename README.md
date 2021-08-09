@@ -14,7 +14,7 @@
 
 ## Summary <a name="summary"></a>
 
-Welcome! The purpose of this notebook is to outline a very simple process for identifying and mitigating machine learning bias using fairlearn and imbalanced-learn. This post will rely on tried-and-true scikit learn best practices, so my hope is that it not only displays ways to handle potential project issues, but also how to properly structure a supervised learning analysis. With that introduction, let's get into the data! 
+Welcome! The purpose of this notebook is to outline a very simple process for identifying and mitigating machine learning bias using fairlearn and imbalanced-learn. This post will rely on tried-and-true scikit learn best practices, so my hope is that it not only displays ways to handle potential bias issues, but also how to properly structure a basic supervised learning analysis. I am also experimenting with bias mitigation strategies provided by imbalanced-learn and fairlearn, so in the fairness assessment sections I am learning along with you! With that introduction, let's get into the data! 
 
 :rotating_light: The axis labels on the plots are black, so if you're in GitHub Dark Mode, you will need to switch to Light Mode to view them!
 
@@ -22,52 +22,27 @@ Welcome! The purpose of this notebook is to outline a very simple process for id
 
 
 ```python
-# Imports
-import warnings
-warnings.filterwarnings('ignore')
-
-import pandas as pd
-import numpy as np
-import seaborn as sns
-from fairlearn.metrics import MetricFrame, false_positive_rate, true_positive_rate, selection_rate, count, demographic_parity_ratio, equalized_odds_ratio
-%matplotlib inline
-
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
-from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC, SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegressionCV, LogisticRegression, SGDClassifier
+# Imports
+import warnings
+warnings.filterwarnings('ignore')
+
+import pandas as pd
+import numpy as np
+import pickle
+import seaborn as sns
+sns.set_style("white")
+from fairlearn.metrics import MetricFrame, false_positive_rate, true_positive_rate, selection_rate, count, demographic_parity_ratio, equalized_odds_ratio
+%matplotlib inline
+
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
+from sklearn.pipeline import Pipeline
+from sklearn.svm import LinearSVC, SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegressionCV, LogisticRegression, SGDClassifier
 from sklearn.ensemble import BaggingClassifier, ExtraTreesClassifier, RandomForestClassifier
 ```
-
-    
-    Bad key text.latex.unicode in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 112 ('text.latex.unicode : False # use "ucs" and "inputenc" LaTeX packages for handling')
-    You probably need to get an updated matplotlibrc file from
-    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
-    or from the matplotlib source distribution
-    
-    Bad key savefig.frameon in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 423 ('savefig.frameon : True')
-    You probably need to get an updated matplotlibrc file from
-    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
-    or from the matplotlib source distribution
-    
-    Bad key pgf.debug in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 444 ('pgf.debug           : False')
-    You probably need to get an updated matplotlibrc file from
-    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
-    or from the matplotlib source distribution
-    
-    Bad key verbose.level in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 475 ('verbose.level  : silent      # one of silent, helpful, debug, debug-annoying')
-    You probably need to get an updated matplotlibrc file from
-    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
-    or from the matplotlib source distribution
-    
-    Bad key verbose.fileo in file C:\Users\allie\Anaconda3\lib\site-packages\matplotlib\mpl-data\stylelib\_classic_test.mplstyle, line 476 ('verbose.fileo  : sys.stdout  # a log filename, sys.stdout or sys.stderr')
-    You probably need to get an updated matplotlibrc file from
-    https://github.com/matplotlib/matplotlib/blob/v3.3.4/matplotlibrc.template
-    or from the matplotlib source distribution
-    
 
 ## The data <a name="data-overview"></a>
 
@@ -85,7 +60,7 @@ The data include 23 variables:
 
 
 ```python
-df = pd.read_excel("../data/default of credit card clients.xls", header = 1)
+df = pd.read_excel("../data/default of credit card clients.xls", header = 1)
 print(f"Number of rows: {df.shape[0]}\nNumber of columns: {df.shape[1]}")
 ```
 
@@ -559,7 +534,7 @@ df.dtypes
 ## Data prep <a name="data-prep"></a>
 
 Before we can do any machine learning modelling, we first need to prepare the data for analysis. It's not ready in its current form! In the cells below, I walk through various feature engineering steps, including:
-- Check whether any rows have missing values and mitigate as-needed
+- Checking whether any rows have missing values and mitigate as-needed
 - Generating binary representations of the categorical variables
 - Mapping the *education* column to a label representation
 - Zeroing out values less than 0 in strictly positive numerical categories
@@ -604,27 +579,27 @@ Before we can do any machine learning modelling, we first need to prepare the da
 
 
 ```python
-df["male"] = np.where(df.SEX == 1, 1, 0)
-df["under30"] = np.where(df.AGE < 30, 1, 0)
-df["unmarried"] = np.where(df.MARRIAGE ==2, 1, 0)
-df.rename(columns = {'default payment next month':'y'}, inplace = True)
-
-educ_dict = {"EDUCATION": ["1", "2", "3", "4"], "EDUC_LEVEL": ["graduate_school", "university", "high_school", "other"]}
-df["EDUCATION"] = df.EDUCATION.astype(str)
-df = pd.merge(df, pd.DataFrame(educ_dict), on = "EDUCATION")
-
-for col in ['PAY_0','PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6']:
+df["male"] = np.where(df.SEX == 1, 1, 0)
+df["under30"] = np.where(df.AGE < 30, 1, 0)
+df["unmarried"] = np.where(df.MARRIAGE ==2, 1, 0)
+df.rename(columns = {'default payment next month':'y'}, inplace = True)
+
+educ_dict = {"EDUCATION": ["1", "2", "3", "4"], "EDUC_LEVEL": ["graduate_school", "university", "high_school", "other"]}
+df["EDUCATION"] = df.EDUCATION.astype(str)
+df = pd.merge(df, pd.DataFrame(educ_dict), on = "EDUCATION")
+
+for col in ['PAY_0','PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6']:
     df.loc[df[col] < 0, col] = 0
 ```
 
 
 ```python
-for col in ['LIMIT_BAL', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
-       'BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5',
-       'BILL_AMT6', 'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5',
-       'PAY_AMT6']: # int type columns
-    df[col] = df[col].astype(float)
-
+for col in ['LIMIT_BAL', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
+       'BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5',
+       'BILL_AMT6', 'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5',
+       'PAY_AMT6']: # int type columns
+    df[col] = df[col].astype(float)
+
 df = pd.get_dummies(df, prefix = "educ_", columns = ["EDUC_LEVEL"], drop_first = True)
 ```
 
@@ -634,8 +609,8 @@ Now that the data is prepped, let's view how the distribution of our target vari
 
 
 ```python
-# Observing pairwise correlations; most of the variables (outside of the bill amounts) are not correlated.
-corr = df.drop(columns = ["SEX", "AGE", "MARRIAGE", "ID", "EDUCATION"], axis = 1).corr()
+# Observing pairwise correlations; most of the variables (outside of the bill amounts) are not correlated.
+corr = df.drop(columns = ["SEX", "AGE", "MARRIAGE", "ID", "EDUCATION"], axis = 1).corr()
 sns.heatmap(corr)
 ```
 
@@ -654,8 +629,8 @@ sns.heatmap(corr)
 
 
 ```python
-# NOTE: Sex = 1 if MALE and 2 if FEMALE
-for col in ["SEX", "under30", "unmarried"]:
+# NOTE: Sex = 1 if MALE and 2 if FEMALE
+for col in ["SEX", "under30", "unmarried"]:
     sns.catplot(x = col, y = "y",  kind="bar", data = df)
 ```
 
@@ -686,85 +661,86 @@ Our classification model is going to pick up on these trends and use them to pre
 
 ## Machine learning analysis <a name="ml-1"></a>
 
-A priori, I don't know which classification model is going to give me the best fit. So the strategy I am going to take instead of fitting different models one-by-one is running a pipeline fit through a series of popular classifiers in an automated fashion. I'm going to use the `fit_predict_score` function I defined earlier to perform the following steps:
-1. Create a pipeline with the steps Standard Scalar (scale the numerical features to have a standard normal distribution) and fit a classifier
-2. Split the data into train and test sets
-3. Fit the pipeline to the training data
-4. Generate the predicted values
-5. Return the accuracy score
-All the results will be appended to the `results` list, and I'll show you which ones performed the best (by the accuracy score, that is!)
+A priori, I don't know which classification model is going to give me the best fit. So the strategy I am going to take instead of fitting different models one-by-one is running a pipeline fit through a series of popular classifiers in an automated fashion. I'm going to use a loop to perform the following steps:
+1. Create a pipeline with the steps `Standard Scalar` (scale the numerical features to have a standard normal distribution) and fitting a classifier
+2. Split the data into train and test sets
+3. Fit the pipeline to the training data
+4. Generate the predicted values
+5. Return the F1 score, which is the harmonic mean of the precision and the recall
+
+All the results will be appended to the `scores` list, and I'll show you which ones performed the best (by the accuracy score, that is!)
 
 
 ```python
-# Dropping the old variables that we recoded earlier
-X = df.drop(columns = ["SEX", "AGE", "MARRIAGE", "ID", "EDUCATION", "y"], axis = 1)
+# Dropping the old variables that we recoded earlier
+X = df.drop(columns = ["SEX", "AGE", "MARRIAGE", "ID", "EDUCATION", "y"], axis = 1)
 y = df.y
 ```
 
 
 ```python
-# define the models we want to test
-models = [
-    SVC(gamma='auto'), LinearSVC(),
-    SGDClassifier(max_iter=100, tol=1e-3), KNeighborsClassifier(),
-    LogisticRegression(solver='lbfgs'), LogisticRegressionCV(cv=3),
-    BaggingClassifier(), ExtraTreesClassifier(n_estimators=300),
-    RandomForestClassifier(n_estimators=300)
-]
-
-results = []
-
-# run models
-for estimator in models:
-    
-    # pipeline
-    pipe = Pipeline([
-        ('scaler', StandardScaler(with_mean=False)),
-        ('estimator', estimator)
-    ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-    
-    # Fit models
-    pipe.fit(X_train, y_train)
-    
-    # Generate predictions
-    expected = y_test
-    predicted = pipe.predict(X_test)
-    score = accuracy_score(y_true = expected, y_pred = predicted), expected, predicted, X_test
-
-    # Compute and return F1 (harmonic mean of precision and recall)
-    results.append((estimator.__class__.__name__, score) )
-
-print(sorted(results, key = lambda s: s[1], reverse= True))
+# define the models we want to test
+models = [
+    SVC(gamma='auto'), LinearSVC(),
+    SGDClassifier(max_iter=100, tol=1e-3), KNeighborsClassifier(),
+    LogisticRegression(solver='lbfgs'), LogisticRegressionCV(cv=3),
+    BaggingClassifier(), ExtraTreesClassifier(n_estimators=300),
+    RandomForestClassifier(n_estimators=300)
+]
+
+scores = []
+
+# run models
+for estimator in models:
+    
+    # pipeline
+    pipe = Pipeline([
+        ('scaler', StandardScaler(with_mean=False)),
+        ('estimator', estimator)
+    ])
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    
+    # Fit models
+    pipe.fit(X_train, y_train)
+    
+    # Generate predictions
+    expected = y_test
+    predicted = pipe.predict(X_test)
+    score = f1_score(y_true = expected, y_pred = predicted)
+
+    # Compute and return F1 (harmonic mean of precision and recall)
+    scores.append((estimator.__class__.__name__, score) )
+
+print(sorted(scores, key = lambda s: s[1], reverse= True))
 ```
 
-    [('SVC', 0.8199352576207176), ('LogisticRegression', 0.8156190990018883), ('LogisticRegressionCV', 0.8156190990018883), ('RandomForestClassifier', 0.8156190990018883), ('LinearSVC', 0.8154842190450499), ('SGDClassifier', 0.8111680604262207), ('ExtraTreesClassifier', 0.8069867817642299), ('BaggingClassifier', 0.8024008632317238), ('KNeighborsClassifier', 0.7874291880226598)]
+    [('SGDClassifier', 0.5058651026392962), ('RandomForestClassifier', 0.4682170542635659), ('SVC', 0.4653584301161394), ('ExtraTreesClassifier', 0.4578768417075935), ('BaggingClassifier', 0.4407045009784736), ('LogisticRegression', 0.4395243952439525), ('LogisticRegressionCV', 0.4395243952439525), ('LinearSVC', 0.4269568857262453), ('KNeighborsClassifier', 0.41973490427098675)]
     
 
-So the best classifier by accuracy is the `SGDClassifier`, which implements a regularized linear model with stochastic gradient descent (SGD) learning. It achieves an accuracy of 82%. That's not great! Let's see how the evaluation metrics break down across the attributes we deemed as sensitive.
+So the best classifier by accuracy is the `SDGclassifier`, which implements a regularized linear models with stochastic gradient descent (SGD) learning. It achieves a F1 score of about 50%. That's not great! Let's see how the evaluation metrics break down across the attributes we deemed as sensitive.
 
 
 ```python
-pipe = Pipeline([
-        ('scaler', StandardScaler(with_mean=False)),
-        ('estimator', SGDClassifier(max_iter=100, tol=1e-3)))
-    ])
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-
-pipe.fit(X_train, y_train)
-    
-expected = y_test
-predicted = pipe.predict(X_test)
-
-metrics = {
-    'accuracy': accuracy_score,
-    'precision': precision_score,
-    'recall': recall_score,
-    'false positive rate': false_positive_rate,
-    'true positive rate': true_positive_rate,
-    'selection rate': selection_rate,
+pipe = Pipeline([ 
+    ('scaler', StandardScaler(with_mean=False)), 
+    ('estimator', SGDClassifier(max_iter=100, tol=1e-3) ) 
+    ])
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+
+pipe.fit(X_train, y_train)
+    
+expected = y_test
+predicted = pipe.predict(X_test)
+
+metrics = {
+    'accuracy': accuracy_score,
+    'precision': precision_score,
+    'recall': recall_score,
+    'false positive rate': false_positive_rate,
+    'true positive rate': true_positive_rate,
+    'selection rate': selection_rate,
     'count': count}
 ```
 
@@ -772,27 +748,27 @@ Let's start by assessing parity across gender. We'll review how the model perfor
 
 
 ```python
-gender_frame = MetricFrame(metrics=metrics, y_true=y_true, y_pred=y_pred, sensitive_features=testdata["male"])
-print(gender_frame.by_group)
-
-gender_frame.by_group.plot.bar(
-    subplots=True,
-    layout=[3, 3],
-    legend=False,
-    figsize=[12, 8],
-    title="Show all metrics",
+gender_frame = MetricFrame(metrics=metrics, y_true=expected, y_pred=predicted, sensitive_features=X_test["male"])
+print(gender_frame.by_group)
+
+gender_frame.by_group.plot.bar(
+    subplots=True,
+    layout=[3, 3],
+    legend=False,
+    figsize=[12, 8],
+    title="Show all metrics",
 )
 ```
 
           accuracy precision    recall false positive rate true positive rate  \
     male                                                                        
-    0     0.818082  0.619403  0.348374            0.056951           0.348374   
-    1     0.810698  0.686076  0.391618            0.056699           0.391618   
+    0     0.808159  0.696682   0.15425            0.017867            0.15425   
+    1     0.781869  0.742424  0.141618            0.015546           0.141618   
     
          selection rate count  
     male                       
-    0          0.118192  4535  
-    1            0.1372  2879  
+    0          0.046527  4535  
+    1          0.045849  2879  
     
 
 
@@ -816,57 +792,57 @@ gender_frame.by_group.plot.bar(
     
 
 
-Okay, so as you can see above, the model is actually likelier to classify men as defaulting on a payment even when in reality they did not (false positive class). Men also have a higher *selection rate*, or percentage of the population which have ‘1’ as their label. Let's also look at the few boilerplate fair ML classification metrics to make sure nothing sketchy is going on.
+Okay, so as you can see above, the model is slightly likelier to classify women as defaulting on a payment even when in reality they did not (false positive class). The *selection rate*, or percentage of the population which have ‘1’ as their label, is roughly equal across groups. Let's also look at the few boilerplate fair ML classification metrics.
 
 
 ```python
-# Demographic parity ratio is defined as the ratio between the smallest and the largest group-level selection rate across all sensitive attributes
-# The closer to 1, the better!
-d = demographic_parity_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["male"])
-
-# Equalized odds ratio is defined as the smaller of two metrics: true_positive_rate_ratio and false_positive_rate_ratio
-# The closer to 1, the better!
-e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["male"])
-
+# Demographic parity ratio is defined as the ratio between the smallest and the largest group-level selection rate across all sensitive attributes
+# The closer to 1, the better!
+d = demographic_parity_ratio(y_true=expected, y_pred=predicted, sensitive_features=X_test["male"])
+
+# Equalized odds ratio is defined as the smaller of two metrics: true_positive_rate_ratio and false_positive_rate_ratio
+# The closer to 1, the better!
+e = equalized_odds_ratio(y_true=expected, y_pred=predicted, sensitive_features=X_test["male"])
+
 print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 ```
 
-    Demographic parity ratio: 0.8614539516838094
-    Equalized odds ratio: 0.8895738065460402
+    Demographic parity ratio: 0.9854330015194191
+    Equalized odds ratio: 0.8701131687242798
     
 
-Both ratios are close to 1, which is pretty good but not perfect. How does this analysis change for the *under30* variable?
+Both ratios are close to 1, which is pretty good! How does this analysis change for the *under30* variable?
 
 
 ```python
-age_frame = MetricFrame(metrics=metrics, y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
-print(age_frame.by_group)
-
-age_frame.by_group.plot.bar(
-    subplots=True,
-    layout=[3, 3],
-    legend=False,
-    figsize=[12, 8],
-    title="Show all metrics",
-)
-
-d = demographic_parity_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
-e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
-
+age_frame = MetricFrame(metrics=metrics, y_true=expected, y_pred=predicted, sensitive_features=X_test["under30"])
+print(age_frame.by_group)
+
+age_frame.by_group.plot.bar(
+    subplots=True,
+    layout=[3, 3],
+    legend=False,
+    figsize=[12, 8],
+    title="Show all metrics",
+)
+
+d = demographic_parity_ratio(y_true=expected, y_pred=predicted, sensitive_features=X_test["under30"])
+e = equalized_odds_ratio(y_true=expected, y_pred=predicted, sensitive_features=X_test["under30"])
+
 print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 ```
 
              accuracy precision    recall false positive rate true positive rate  \
     under30                                                                        
-    0        0.819093  0.654687  0.380909            0.056871           0.380909   
-    1        0.807249  0.632302  0.337615            0.056824           0.337615   
+    0        0.796831  0.735135  0.123636            0.012609           0.123636   
+    1        0.800247  0.689873       0.2            0.026022                0.2   
     
             selection rate count  
     under30                       
-    0             0.128359  4986  
-    1             0.119852  2428  
-    Demographic parity ratio: 0.9337198826194398
-    Equalized odds ratio: 0.8863392524796917
+    0             0.037104  4986  
+    1             0.065074  2428  
+    Demographic parity ratio: 0.5701787790623873
+    Equalized odds ratio: 0.48455995882655684
     
 
 
@@ -882,7 +858,7 @@ In a machine learning analysis, there are three places where bias mitigation can
 2. In-processing: In-processing involes including a regularization parameter to a model to optimize the model for fairness while it's training. 
 3. Post-processing: Post-processing involves changing the thresholds of the evaluation metric you're using to incorporate fairness goals.
 
-In an ideal world, bias mitigation would begin before machine learning starts. It's easier to achieve the goals of fairness AND accuracy, precision, AOC_RUC score, etc. if we rewight/resample the data before running a model. Why is this the case? Well, during in-processing, if you're trying to achieve an outcome while adhering to a fairness constraint, your outcome may be worse off than if the constraint was not there. Similarly, if you're adjusting the threshold of an evaluation metric to accomodate a fairness constraint, even if you get the metric to an acceptable level, that metric is reflective of the model's capability to pick up on signals in the data, and one signal is data bias. I've explained this before as garbage-in, garbage-out; even if you dress up the garbage you get from the model, that doesn't change the fact that garbage was used to produce it!
+In an ideal world, bias mitigation would begin before machine learning starts. It's easier to achieve the goals of fairness AND accuracy, precision, AOC_RUC score, etc. if we reweight/resample the data before running a model. Why is this the case? Well, during in-processing, if you're trying to achieve an outcome while adhering to a fairness constraint, your outcome may be worse off than if the constraint was not there. Similarly, if you're adjusting the threshold of an evaluation metric to accomodate a fairness constraint, even if you get the metric to an acceptable level, that metric is reflective of the model's capability to pick up on signals in the data, and one signal is data bias. I've explained this before as garbage-in, garbage-out; even if you dress up the garbage you get from the model, that doesn't change the fact that garbage was used to produce it!
 
 In the section below, I attempt to address the disparate outcomes for younger credit card holders using resampling.
 
@@ -890,51 +866,51 @@ In the section below, I attempt to address the disparate outcomes for younger cr
 
 
 ```python
-from imblearn.over_sampling import SMOTE
-from imblearn.pipeline import make_pipeline
-
-# Redo the pipeline with the SMOTE parameter added in and reassess the results
-
-pipe = make_pipeline(SMOTE(random_state=0), StandardScaler(with_mean=False), SGDClassifier(max_iter=100, tol=1e-3) )
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-    
-pipe.fit(X_train, y_train)
-
-y_true = y_test
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import make_pipeline
+
+# Redo the pipeline with the SMOTE parameter added in and reassess the results
+
+pipe = make_pipeline(SMOTE(random_state=0), StandardScaler(with_mean=False), SGDClassifier(max_iter=100, tol=1e-3) )
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    
+pipe.fit(X_train, y_train)
+
+y_true = y_test
 y_pred = pipe.predict(X_test)
 ```
 
 
 ```python
-age_frame = MetricFrame(metrics=metrics, y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
-
-age_frame.by_group.plot.bar(
-    subplots=True,
-    layout=[3, 3],
-    legend=False,
-    figsize=[12, 8],
-    title="Show all metrics",
-)
-
-print(age_frame.by_group)
-
-d = demographic_parity_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
-e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
+age_frame = MetricFrame(metrics=metrics, y_true=y_true, y_pred=y_pred, sensitive_features=X_test["under30"])
+
+age_frame.by_group.plot.bar(
+    subplots=True,
+    layout=[3, 3],
+    legend=False,
+    figsize=[12, 8],
+    title="Show all metrics",
+)
+
+print(age_frame.by_group)
+
+d = demographic_parity_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=X_test["under30"])
+e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=X_test["under30"])
 print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 ```
 
              accuracy precision    recall false positive rate true positive rate  \
     under30                                                                        
-    0        0.760931  0.460951  0.493636            0.163407           0.493636   
-    1        0.796129   0.57716  0.343119            0.072756           0.343119   
+    0        0.754513  0.453172  0.545455             0.18631           0.545455   
+    1        0.793245  0.548975  0.442202            0.105151           0.442202   
     
             selection rate count  
     under30                       
-    0             0.236262  4986  
-    1             0.133443  2428  
-    Demographic parity ratio: 0.5648112149428148
-    Equalized odds ratio: 0.4452452737088161
+    0             0.265544  4986  
+    1             0.180807  2428  
+    Demographic parity ratio: 0.6808949715554183
+    Equalized odds ratio: 0.5643897272191137
     
 
 
@@ -943,28 +919,34 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
     
 
 
-After applying SMOTE resampling, we can see that younger applicants now have a lower false positive and lower selection rate than they did previously. The count reflects the underrepresentation in the original dataset and should be ignored. Because  outcomes for the under-30 group are now better across the board, demographic parity and equalized odds suffer. In a more rigorous analysis, I'd experiment with other sampling and reweighting schemes to get as close to equal outcomes between groups as possible. 
+After applying SMOTE resampling, we can see that younger cardholders now have a lower false positive and lower selection rate than they did previously. The accuracy has fallen to slightly under 80%. The count reflects the underrepresentation in the original dataset and should be ignored. Because  outcomes for the under-30 group are now better across the board, demographic parity and equalized odds suffer. In a more rigorous analysis, I'd experiment with other sampling and reweighting schemes to get as close to equal outcomes between groups as possible. 
 
 ## Bias mitigation via inprocessing <a name="bias-mitigation-inprocessing"></a>
 
-In the cell below, I apply an inprocessing method, a reduction (of the demographic parity flavor) to constrain the SDG classifier along a fairness requirement. 
+In the cell below, I apply an inprocessing method, a reduction (of the demographic parity flavor) to constrain the SVC classifier along a fairness requirement. 
 
 
 ```python
-from fairlearn.reductions import ExponentiatedGradient, DemographicParity
-
-dp = DemographicParity(difference_bound=0.01)
+from fairlearn.reductions import ExponentiatedGradient, DemographicParity
+
+dp = DemographicParity(difference_bound=0.01)
 reduction = ExponentiatedGradient(SGDClassifier(max_iter=100, tol=1e-3), dp)
+```
 
-reduction.fit(X_train, y_train, sensitive_features=X_train["under30"])
+
+```python
+reduction.fit(X_train, y_train, sensitive_features=X_train["under30"])
 y_pred = reduction.predict(X_test, random_state = 0)
+```
 
-age_frame = MetricFrame(metrics=metrics, y_true=y_test, y_pred=y_pred, sensitive_features=X_test["under30"])
 
-print(age_frame.by_group)
-
-d = demographic_parity_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
-e = equalized_odds_ratio(y_true=y_true, y_pred=y_pred, sensitive_features=testdata["under30"])
+```python
+age_frame = MetricFrame(metrics=metrics, y_true=y_test, y_pred=y_pred, sensitive_features=X_test["under30"])
+
+print(age_frame.by_group)
+
+d = demographic_parity_ratio(y_true=y_test, y_pred=y_pred, sensitive_features=X_test["under30"])
+e = equalized_odds_ratio(y_true=y_test, y_pred=y_pred, sensitive_features=X_test["under30"])
 print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
 ```
 
@@ -981,7 +963,7 @@ print(f"Demographic parity ratio: {d}\nEqualized odds ratio: {e}")
     Equalized odds ratio: nan
     
 
-As you can see in the results above, nearly every evaluation metric is zeroed out. Demographic parity and equalized odds are also missing. I'd consider these results to be unstable. If I wanted to improvde precision and recall across both groups, I'd continue to toggle the `DemographicParity()` constraint until I attained satisfactory results. The fairlearn documentation notes that picking the appropriate evaluation metric constraint is crucial, and in a real-world situation, this is something that I or my team would have determined ahead of time in accordance with the machine learning project's goals.
+As you can see in the results above, nearly every evaluation metric is zeroed out. Demographic parity and equalized odds are also missing. I'd consider these results to be unstable. If I wanted to improve precision and recall across both groups, I'd continue to toggle the `DemographicParity()` constraint until I attained satisfactory results. The fairlearn documentation notes that picking the appropriate evaluation metric constraint is crucial, and in a real-world situation, this is something that I or my team would have determined ahead of time in accordance with the project's goals.
 
 In a more rigorous analysis, I'd also do a grid search on the hyperparameters of the SDG classifier to ensure I got the best fit.
 
